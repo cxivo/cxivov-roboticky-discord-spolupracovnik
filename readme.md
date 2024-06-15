@@ -1,0 +1,1 @@
+This uses discord.js. IIRC you init it like `npm init` or something. You also need a `.env` file with a DISCORD_TOKEN (token for your bot), GUILD_ID (id of your server) and CLIENT_ID (id of your bot account).
