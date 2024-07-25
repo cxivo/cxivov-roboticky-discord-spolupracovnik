@@ -181,11 +181,17 @@ async function routine() {
   // randomly assign someone the role @someone
   const someoneId = "1266117205947584573";
   const guild = await client.guilds.fetch(process.env.GUILD_ID);
-  const currentSomeone = (await guild.roles.fetch(someoneId)).members?.at(0);
+  const currentSomeoneList = (await guild.roles.fetch(someoneId)).members;
 
   // remove the role from the person who has it
-  if (currentSomeone != undefined) {
-    await guild.members.removeRole({ user: currentSomeone, role: someoneId });
+  if (currentSomeoneList != undefined) {
+    await Promise.all(
+      Array.from(
+        currentSomeoneList.map((currentSomeone) =>
+          guild.members.removeRole({ user: currentSomeone, role: someoneId })
+        )
+      )
+    );
   }
 
   // add it to someone at random
