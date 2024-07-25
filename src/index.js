@@ -8,8 +8,10 @@ import {
   ActivityType,
   Partials,
   ChannelType,
+  Guild,
 } from "discord.js";
 import { parse } from "node-html-parser";
+import mongoose from "mongoose";
 
 const client = new Client({
   intents: [
@@ -79,23 +81,131 @@ const statuses = [
     state: "Stalking everyone on this server",
   },
   {
-    name: "listening",
+    name: "what the other bot has to offer",
     type: ActivityType.Listening,
-    state: "what the other bot has to offer",
   },
   {
-    name: "listeningbot",
+    name: "Lokálny muzikant",
     type: ActivityType.Listening,
-    state: "Lokálny muzikant",
+  },
+  {
+    name: "ucenie",
+    type: ActivityType.Custom,
+    state: "Učiaci sa booleovskú logiku",
+  },
+  {
+    name: "ucenie2",
+    type: ActivityType.Custom,
+    state: "Učiaci sa históriu dinosaurov",
+  },
+  {
+    name: "rozmysla2",
+    type: ActivityType.Custom,
+    state: "Rozmýšľajúci nad vhodnou večerou",
+  },
+  {
+    name: "hromziaci",
+    type: ActivityType.Custom,
+    state:
+      "Hromžiaci na tú prekliatu nechutnosť plnú čiernej mágie nazývanú AIS2",
+  },
+  {
+    name: "kut",
+    type: ActivityType.Custom,
+    state: "Ležiaci skrčený v kúte",
+  },
+  {
+    name: "blender",
+    type: ActivityType.Custom,
+    state: "Modelujúci v Blenderi",
+  },
+  {
+    name: "zalohovanie",
+    type: ActivityType.Custom,
+    state: "Zálohujúci si svoje údaje",
+  },
+  {
+    name: "prehliadac",
+    type: ActivityType.Custom,
+    state: "Meniaci si svoj východiskový prehliadač",
+  },
+  {
+    name: "linux",
+    type: ActivityType.Custom,
+    state: "Inštalujúci ďalšiu distribúciu Linuxu",
+  },
+  {
+    name: "statusy",
+    type: ActivityType.Custom,
+    state: "Čítajúci si statusy ostatných ľudí",
+  },
+  {
+    name: "statusy2",
+    type: ActivityType.Custom,
+    state: "Píšuci hlúpe statusy ktoré aj tak nik nečíta",
+  },
+  {
+    name: "piano",
+    type: ActivityType.Playing,
+  },
+  {
+    name: "with fire",
+    type: ActivityType.Playing,
+  },
+  {
+    name: "ležanie na 100 metrov",
+    type: ActivityType.Competing,
+  },
+  {
+    name: "1D chess",
+    type: ActivityType.Competing,
+  },
+  {
+    name: "three witches watch three Swatch watches",
+    type: ActivityType.Watching,
+  },
+  {
+    name: "my neighbor using a glass pressed on their door",
+    type: ActivityType.Listening,
+  },
+  {
+    name: "my empty desktop to my 2 followers",
+    type: ActivityType.Streaming,
   },
 ];
+
+async function routine() {
+  // change statuses periodically
+  client.user.setActivity(statuses[getRandomInt(statuses.length)]);
+
+  // randomly assign someone the role @someone
+  const someoneId = "1266117205947584573";
+  const guild = await client.guilds.fetch(process.env.GUILD_ID);
+  const currentSomeone = (await guild.roles.fetch(someoneId)).members?.at(0);
+
+  // remove the role from the person who has it
+  if (currentSomeone != undefined) {
+    await guild.members.removeRole({ user: currentSomeone, role: someoneId });
+  }
+
+  // add it to someone at random
+  const memberList = await guild.members.fetch();
+  const randomMember = memberList.at(getRandomInt(memberList.size));
+  guild.members.addRole({
+    user: randomMember,
+    role: someoneId,
+  });
+
+  console.log(`@someone added to ${randomMember.displayName}`);
+}
 
 client.on("ready", async (c) => {
   console.log(`${c.user.tag} is ready.`);
 
-  setInterval(() => {
-    client.user.setActivity(statuses[getRandomInt(statuses.length)]);
-  }, 100000);
+  routine();
+  setInterval(async () => routine(), 100000);
+
+  // check Unum
 });
 
 const swears = [
@@ -117,6 +227,7 @@ const swears = [
   /^cunt$/,
   /^ass$/,
   /^asshole$/,
+  /^bitch$/,
   /^shit.*$/,
   /^.*shit$/,
 ];
@@ -214,10 +325,18 @@ function getSwearEmoji() {
 client.on("messageCreate", async (message) => {
   //console.log(message);
 
+  // replace @someone
+  if (message.content.includes("<@&1266117205947584573>")) {
+    routine();
+  }
+
   if (!message.author.bot) {
     // for real users only
 
-    const words = message.content.toLowerCase().split(" ");
+    const words = message.content
+      .toLowerCase()
+      .replace(/[&\/\\#,+()$~%.'":*?<>{}!=$§_\-;]/g, "")
+      .split(" ");
     let isSwearing = false;
 
     swears.forEach((swear) => {
@@ -550,4 +669,14 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+(async () => {
+  try {
+    mongoose.set("strictQuery", false);
+    await mongoose.connect(process.env.DATABASE_STRING);
+    console.log("Pripojivší k databáze");
+
+    client.login(process.env.DISCORD_TOKEN);
+  } catch (error) {
+    console.error(error);
+  }
+})();
